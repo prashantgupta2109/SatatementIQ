@@ -1,0 +1,11 @@
+pandas
+numpy
+pdfplumber
+PyMuPDF
+pytesseract
+opencv-python
+scikit-learn
+openpyxl
+streamlit
+pytest
+joblib
