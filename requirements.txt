@@ -3,7 +3,7 @@ numpy
 pdfplumber
 PyMuPDF
 pytesseract
-opencv-python
+opencv-python-headless
 scikit-learn
 openpyxl
 streamlit
