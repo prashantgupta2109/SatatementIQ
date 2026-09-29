@@ -185,6 +185,18 @@ class TestOCRTextToTransactions:
         assert account.ifsc == "HDFC0001234"
         assert "01 Aug 2024" in (account.statement_period or "")
 
+    def test_extract_account_details_handles_ocr_separator_and_neighboring_fields(self):
+        text = "\n".join([
+            "State Bank of India Account Statement",
+            "Account Holder Name : | ADITYA SINGH Account Number : 0000001234567890",
+            "Account Type : Savings Account IFSC Code : SBIN0001234",
+            "Statement Period : 01 Aug 2025 to 31 Aug 2025",
+        ])
+
+        account = extract_account_details(text)
+
+        assert account.account_holder == "ADITYA SINGH"
+
     def test_extract_account_details_finds_unlabelled_header_name(self):
         text = "\n".join([
             "SBI",

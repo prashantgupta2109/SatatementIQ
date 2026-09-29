@@ -171,18 +171,25 @@ def _extract_holder_name(text: str) -> str | None:
     """Extract account holder name using alias labels."""
     # Sort aliases longest-first to match "Account Holder Name" before "Name"
     aliases = sorted(_FIELD_ALIASES["account_holder"], key=len, reverse=True)
+    next_field = re.compile(
+        r"\b(?:account\s+(?:number|no\.?|type)|ifsc(?:\s+code)?|branch|address|"
+        r"statement\s+(?:date|period)|currency|available\s+balance|closing\s+balance)\b",
+        re.IGNORECASE,
+    )
+
     for alias in aliases:
-        escaped = re.escape(alias)
-        pattern = re.compile(
-            rf"{escaped}\s*[:\-]\s*([A-Za-z][A-Za-z\s\.]+)",
-            re.IGNORECASE,
-        )
-        match = pattern.search(text)
-        if match:
-            name = match.group(1).strip()
-            # Clean up: stop at newline or next field
-            name = name.split("\n")[0].strip()
-            if len(name) >= 2:
+        pattern = re.compile(rf"{re.escape(alias)}\s*[:|\-]?\s*", re.IGNORECASE)
+        for line in text.splitlines():
+            match = pattern.search(line)
+            if not match:
+                continue
+
+            name = line[match.end():].lstrip(" :|\t-")
+            next_match = next_field.search(name)
+            if next_match:
+                name = name[:next_match.start()]
+            name = re.sub(r"\s+", " ", name).strip(" :|\t-")
+            if re.fullmatch(r"[A-Za-z][A-Za-z .'-]{1,58}", name):
                 return name
 
     return _extract_unlabelled_holder_name(text)
