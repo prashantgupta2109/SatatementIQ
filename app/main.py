@@ -20,6 +20,25 @@ import tempfile
 import pandas as pd
 import streamlit as st
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMetric"] > div {
+        padding: 0.5rem 0.6rem;
+    }
+    div[data-testid="stMetric"] label {
+        font-size: 0.9rem !important;
+        font-weight: 500;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 2.0rem !important;
+        line-height: 1.2;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 from app.models import ProcessingResult, BankAccount, Transaction
 from app.ingestion.image_converter import image_bytes_to_pdf
 from app.ingestion.pdf_detector import detect_pdf_type, get_page_count
@@ -141,7 +160,18 @@ def main():
         st.markdown("---")
         st.subheader("3. Results")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("PDF Type", "Text-Based" if res.pdf_type == "text" else "Scanned (Image)")
+        m1.markdown(
+            """
+            <div style='padding: 0.2rem 0.4rem;'><div style='font-size: 1.1rem; font-weight: 600; color: #4a4a4a;'>PDF Type</div>
+            <div style='font-size: 2.2rem; font-weight: 700; margin-top: 0.2rem;'>Text-Based</div></div>
+            """
+            if res.pdf_type == "text"
+            else """
+            <div style='padding: 0.2rem 0.4rem;'><div style='font-size: 1.1rem; font-weight: 600; color: #4a4a4a;'>PDF Type</div>
+            <div style='font-size: 1.8rem; font-weight: 700; margin-top: 0.2rem;'>Scanned (Image)</div></div>
+            """,
+            unsafe_allow_html=True,
+        )
         m2.metric("Transactions", len(txns))
         m3.metric("Classified", classified_count)
         m4.metric("Needs Review", review_needed_count)

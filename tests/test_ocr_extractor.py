@@ -7,6 +7,7 @@ import cv2
 import fitz
 import pytest
 from app.exceptions import BankStatementError
+from app.extraction.account_extractor import extract_account_details
 from app.extraction.ocr_extractor import (
     preprocess_image,
     parse_ocr_text_to_transactions,
@@ -166,3 +167,20 @@ class TestOCRTextToTransactions:
         assert validated[2].credit == 500000.0
         assert validated[2].debit is None
         assert validated[-1].description == "Account Transfer Out"
+
+    def test_extract_account_details_handles_spaced_ocr_numbers(self):
+        text = "\n".join([
+            "HDFC BANK",
+            "Account Holder Name : PRASHANT GUPTA",
+            "A/C No. : 5010 1234 5678 90",
+            "IFSC Code : HDFC 0001 234",
+            "Statement Period : 01 Aug 2024 to 31 Aug 2024",
+        ])
+
+        account = extract_account_details(text)
+
+        assert account.bank_name == "HDFC Bank"
+        assert account.account_holder == "PRASHANT GUPTA"
+        assert account.account_number == "50101234567890"
+        assert account.ifsc == "HDFC0001234"
+        assert "01 Aug 2024" in (account.statement_period or "")

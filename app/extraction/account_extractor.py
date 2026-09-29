@@ -110,23 +110,48 @@ def extract_account_details(text: str) -> BankAccount:
 
 def _extract_field(text: str, field: str, value_pattern: re.Pattern) -> str | None:
     """Extract a field value by searching near its alias labels."""
+    cleaned_text = text.replace("\u00a0", " ")
+
     for alias in _FIELD_ALIASES.get(field, []):
-        # Build pattern: alias followed by separator then value
-        escaped = re.escape(alias)
         pattern = re.compile(
-            rf"{escaped}\s*[:\-\s]\s*(.+)",
+            rf"{re.escape(alias)}\s*[:\-\s]*([A-Za-z0-9][A-Za-z0-9\s/.,\-]*)",
             re.IGNORECASE,
         )
-        match = pattern.search(text)
-        if match:
-            # Extract the actual value from the captured group
-            value_match = value_pattern.search(match.group(1))
-            if value_match:
-                return value_match.group(1).strip()
+        match = pattern.search(cleaned_text)
+        if not match:
+            continue
 
-    # Fallback: scan full text for standalone IFSC pattern
+        candidate = match.group(1).strip()
+        candidate = candidate.split("\n")[0].strip()
+        candidate = re.sub(r"\s+", " ", candidate)
+
+        if field == "ifsc":
+            compact = re.sub(r"[^A-Z0-9]", "", candidate.upper())
+            if re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", compact):
+                return compact
+            if re.fullmatch(r"[A-Z0-9]{11}", compact):
+                return compact
+
+        if field == "account_number":
+            digits = re.sub(r"\D", "", candidate)
+            if 9 <= len(digits) <= 18:
+                return digits
+            fallback = value_pattern.search(candidate)
+            if fallback:
+                return fallback.group(1).strip()
+
+        if field in {"account_holder", "statement_period"}:
+            value = candidate.strip(" :;,-")
+            if value:
+                return value
+
+        # Generic fallback for other fields
+        value_match = value_pattern.search(candidate)
+        if value_match:
+            return value_match.group(1).strip()
+
     if field == "ifsc":
-        match = value_pattern.search(text)
+        match = value_pattern.search(cleaned_text)
         if match:
             return match.group(1).strip()
 
