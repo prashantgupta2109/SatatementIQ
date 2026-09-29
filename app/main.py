@@ -120,9 +120,14 @@ def main():
     )
 
     if uploaded_file is not None:
+        if st.session_state.get("filename") != uploaded_file.name:
+            st.session_state.pop("result", None)
+            st.session_state.pop("filename", None)
+
         process_btn = st.button("Process Statement", type="primary")
 
         if process_btn:
+            st.session_state.pop("result", None)
             with st.spinner("Processing document through extraction & classification pipeline..."):
                 try:
                     res = process_statement(uploaded_file)
