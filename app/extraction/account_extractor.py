@@ -184,6 +184,38 @@ def _extract_holder_name(text: str) -> str | None:
             name = name.split("\n")[0].strip()
             if len(name) >= 2:
                 return name
+
+    return _extract_unlabelled_holder_name(text)
+
+
+def _extract_unlabelled_holder_name(text: str) -> str | None:
+    """Find an uppercase, multi-word customer name in the statement header."""
+    header = re.split(r"\btransaction\s+details\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
+    excluded_terms = {
+        "ACCOUNT", "ADDRESS", "BANK", "BRANCH", "CURRENCY", "CUSTOMER",
+        "DATE", "DETAILS", "HOLDER", "IFSC", "INDIA", "NUMBER", "PAGE",
+        "PERIOD", "SAVINGS", "STATEMENT", "TRANSACTION", "TYPE",
+    }
+
+    for line in header.splitlines()[:30]:
+        name_prefix = re.split(
+            r"\b(?:account\s+(?:number|no\.?|type|holder)|ifsc(?:\s+code)?|"
+            r"branch|currency|statement\s+(?:date|period)|page\s+no\.?)\b\s*[:\-]?",
+            line,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0]
+        candidate = re.sub(r"\s+", " ", name_prefix).strip(" :;,-")
+        if not re.fullmatch(r"[A-Z][A-Z .'-]{1,58}[A-Z.]", candidate):
+            continue
+
+        words = re.findall(r"[A-Z]+", candidate)
+        if len(words) < 2 or any(word in excluded_terms for word in words):
+            continue
+        if any(bank.casefold() in candidate.casefold() for bank in _KNOWN_BANKS):
+            continue
+        return candidate
+
     return None
 
 

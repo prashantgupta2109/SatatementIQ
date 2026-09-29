@@ -184,3 +184,34 @@ class TestOCRTextToTransactions:
         assert account.account_number == "50101234567890"
         assert account.ifsc == "HDFC0001234"
         assert "01 Aug 2024" in (account.statement_period or "")
+
+    def test_extract_account_details_finds_unlabelled_header_name(self):
+        text = "\n".join([
+            "SBI",
+            "Account Statement",
+            "Savings Account",
+            "PRASHANT GUPTA",
+            "C-45, Indira Nagar",
+            "Lucknow - 226016",
+            "Account Number : 20345678910",
+            "Account Type : Savings Account",
+            "TRANSACTION DETAILS",
+            "01 Jan 2025 Opening Balance",
+        ])
+
+        account = extract_account_details(text)
+
+        assert account.account_holder == "PRASHANT GUPTA"
+
+    def test_extract_account_details_finds_name_merged_with_metadata(self):
+        text = "\n".join([
+            "SBI",
+            "Account Statement",
+            "PRASHANT GUPTA Account Number : 20345678910",
+            "C-45, Indira Nagar Account Type : Savings Account",
+            "TRANSACTION DETAILS",
+        ])
+
+        account = extract_account_details(text)
+
+        assert account.account_holder == "PRASHANT GUPTA"
